@@ -26,6 +26,7 @@
                         <th>Title</th>
                         <th>Published Date</th>
                         <th>PageCount</th>
+                        <th>Action</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -35,6 +36,14 @@
                             <td>@selectedVolume.VolumeInfo.Title</td>
                             <td>@selectedVolume.VolumeInfo.PublishedDate</td>
                             <td>@selectedVolume.VolumeInfo.PageCount</td>
+                            <td class="column-action">
+                                @if (currentCategory?.GoogleBookVolumes?.Contains(selectedVolume) == true)
+                                {
+                                    <button @onclick="() => RemoveGoogleVolumeToCategory(selectedVolume)" class="btn btn-danger">
+                                        <span class="oi oi-minus" aria-hidden="true"></span> Delete volume
+                                    </button>
+                                }
+                            </td>
                         </tr>
                     }
                 </tbody>

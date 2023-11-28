@@ -1,0 +1,112 @@
+﻿@page "/Categories"
+@inject IJSRuntime JsRuntime
+@using CustomApiClient;
+@using DTOs
+@inject ICustomApiClient CustomApiClientService
+
+<PageTitle>Local categories</PageTitle>
+
+<h1>Categories</h1>
+
+@if (IsLoading)
+{
+    <div class="spinner-border" role="status">
+    </div>
+}
+else
+{
+    @if (categories != null)
+    {
+        <table class="table">
+            <thead>
+                <tr>
+                    <th class="column-id">ID</th>
+                    <th class="column-name">Name</th>
+                    <th class="column-action">Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var category in categories)
+                {
+                    <tr>
+                        <td class="column-id">@category.Id</td>
+                        <td class="column-name">
+                            <a href="Category/@category.Id" class="nav-link">@category.Name</a>
+                        </td>
+                        <td class="column-action">
+                            <div style="display:flex">
+                                <a href="Category/@category.Id" class="nav-link">
+                                    <span class="oi oi-pencil" aria-hidden="true"></span> Update category
+                                </a>
+                                <a @onclick="() => ShowConfirmationDialog(category)" class="btn btn-danger">
+                                    <span class="oi oi-delete" aria-hidden="true"></span> Delete category
+                                </a>
+                            </div>
+                        </td>
+
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+}
+
+@code {
+    private List<CategoryDTO> categories;
+    private bool IsLoading = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        IsLoading = true;
+        categories = await CustomApiClientService.GetAllCategories();
+        IsLoading = false;
+    }
+
+    private async Task ShowConfirmationDialog(CategoryDTO category)
+    {
+        bool confirmed = await JsRuntime.InvokeAsync<bool>("confirm", "Are you sure?");
+
+        if (confirmed)
+        {
+            await DeleteCategory(category);
+        }
+    }
+
+    [JSInvokable]
+    public async Task<bool> DeleteCategory(CategoryDTO categoryToDelete)
+    {
+        if (categoryToDelete != null)
+        {
+            await CustomApiClientService.DeleteCategory(categoryToDelete.Id);
+            categories.Remove(categoryToDelete);
+        }
+
+        return true;
+    }
+}
+
+
+<style>
+    .table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+        .table th, .table td {
+            text-align: left;
+            padding: 8px;
+            border: 1px solid #ddd;
+        }
+
+    .column-id {
+        width: 20%;
+    }
+
+    .column-name {
+        width: 50%;
+    }
+
+    .column-action {
+        width: 30%;
+    }
+</style>

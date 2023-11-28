@@ -1,0 +1,200 @@
+﻿@page "/Category/{currentCategoryId}"
+@using BlazorApp.Data
+@using CustomApiClient
+@using DTOs
+@inject ICustomApiClient CustomApiClientService
+
+<PageTitle>Category</PageTitle>
+
+<div style="position: relative;">
+    @if (currentCategory is not null)
+    {
+        <h1>Create category</h1>
+
+        <label for="categoryName">Category Name</label>
+        <input type="text" class="form-control" id="categoryName" @bind="currentCategory.Name"></input>
+
+        @if (currentCategory?.GoogleBookVolumes?.Any() == true)
+        {
+            <hr />
+
+            <h2>List of volumes in the category</h2>
+
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Title</th>
+                        <th>Published Date</th>
+                        <th>PageCount</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var selectedVolume in currentCategory.GoogleBookVolumes)
+                    {
+                        <tr>
+                            <td>@selectedVolume.VolumeInfo.Title</td>
+                            <td>@selectedVolume.VolumeInfo.PublishedDate</td>
+                            <td>@selectedVolume.VolumeInfo.PageCount</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+
+        <div>
+            <button class="btn btn-primary" @onclick="UpdateCategory" disabled="@string.IsNullOrEmpty(currentCategory?.Name)">Update Category</button>
+        </div>
+        <hr />
+
+        <div>
+            <h1>Add volumes to category</h1>
+
+            <input type="text" class="form-control" @bind="findGoogleVolumeQuery"></input>
+            <button class="btn btn-primary" @onclick="FindGoogleVolume" disabled="@IsLoading">
+                <span>Find Volume</span>
+            </button>
+
+
+            @if (volumes?.Items?.Any() == true)
+            {
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Title</th>
+                            <th>Published Date</th>
+                            <th>PageCount</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var volume in volumes.Items)
+                        {
+                            <tr>
+                                <td>@volume.VolumeInfo.Title</td>
+                                <td>@volume.VolumeInfo.PublishedDate</td>
+                                <td>@volume.VolumeInfo.PageCount</td>
+                                <td class="column-action">
+                                    @if (currentCategory?.GoogleBookVolumes?.Contains(volume) == true)
+                                    {
+                                        <button @onclick="() => RemoveGoogleVolumeToCategory(volume)" class="btn btn-danger">
+                                            <span class="oi oi-minus" aria-hidden="true"></span> Delete volume
+                                        </button>
+                                    }
+                                    else
+                                    {
+                                        <button @onclick="() => AddGoogleVolumeToCategory(volume)" class="btn btn-primary">
+                                            <span class="oi oi-plus" aria-hidden="true"></span> Add volume
+                                        </button>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+        </div>
+
+
+        @if (IsSuccess)
+        {
+            <div class="modal fade show" style="display: block;">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Success</h5>
+                            <button type="button" class="close" @onclick="CloseModal">
+                                <span aria-hidden="true">&times;</span>
+                            </button>
+                        </div>
+                        <div class="modal-body">
+                            <p>Category "@currentCategory.Name" with ID [@currentCategory.Id] was successfully updated!</p>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-success" @onclick="CloseModal">Close</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        }
+    }
+
+
+    @if (IsLoading)
+    {
+        <div class="overlay">
+            <div class="spinner-border" role="status"></div>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public string currentCategoryId { get; set; }
+    private CategoryDTO currentCategory;
+    private bool IsLoading = false;
+    private bool IsSuccess = false;
+    private string findGoogleVolumeQuery = "";
+    private GoogleBookVolumesResultDTO volumes;
+
+    protected override async Task OnInitializedAsync()
+    {
+        IsLoading = true;
+        currentCategory = await CustomApiClientService.GetCategoryById(int.Parse(currentCategoryId));
+        IsLoading = false;
+    }
+
+    private async Task FindGoogleVolume()
+    {
+        IsLoading = true;
+        volumes = await CustomApiClientService.FindGoogleVolume(findGoogleVolumeQuery);
+        IsLoading = false;
+    }
+
+    private void AddGoogleVolumeToCategory(GoogleBookVolumeDTO googleBookVolumeDTO)
+    {
+        if (currentCategory != null)
+        {
+            currentCategory.GoogleBookVolumes ??= new List<GoogleBookVolumeDTO>();
+            currentCategory.GoogleBookVolumes.Add(googleBookVolumeDTO);
+        }
+    }
+
+    private void RemoveGoogleVolumeToCategory(GoogleBookVolumeDTO googleBookVolumeDTO)
+    {
+        if (currentCategory != null)
+        {
+            currentCategory.GoogleBookVolumes.Remove(googleBookVolumeDTO);
+        }
+    }
+
+    private async Task UpdateCategory()
+    {
+        IsLoading = true;
+        await CustomApiClientService.UpdateCategory(currentCategory);
+        IsSuccess = true;
+        IsLoading = false;
+    }
+
+    private void CloseModal()
+    {
+        IsSuccess = false;
+    }
+}
+
+<style>
+    .overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(255, 255, 255, 0.7);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+    }
+
+    .spinner-border {
+    }
+</style>

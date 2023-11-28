@@ -1,0 +1,183 @@
+﻿@page "/Category/Create"
+@using BlazorApp.Data
+@using CustomApiClient
+@using DTOs
+@inject ICustomApiClient CustomApiClientService
+
+<PageTitle>Create category</PageTitle>
+
+<div style="position: relative;">
+    <h1>Create category</h1>
+
+    <label for="categoryName">Category Name</label>
+    <input type="text" class="form-control" id="categoryName" @bind="categoryCreateDTO.Name"></input>
+
+    @if (selectedVolumes?.Any() == true)
+    {
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Title</th>
+                    <th>Published Date</th>
+                    <th>PageCount</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var selectedVolume in selectedVolumes)
+                {
+                    <tr>
+                        <td>@selectedVolume.VolumeInfo.Title</td>
+                        <td>@selectedVolume.VolumeInfo.PublishedDate</td>
+                        <td>@selectedVolume.VolumeInfo.PageCount</td>
+                        <td class="column-action">
+                            <button @onclick="() => RemoveGoogleVolumeToCategory(selectedVolume)" class="btn btn-danger">
+                                <span class="oi oi-minus" aria-hidden="true"></span> Delete volume
+                            </button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+
+    <div>
+        <button class="btn btn-primary" @onclick="CreateCategory" disabled="@string.IsNullOrEmpty(categoryCreateDTO?.Name)">Create Category</button>
+    </div>
+    <hr />
+    <h1>Add volumes to category</h1>
+
+    <input type="text" class="form-control" @bind="findGoogleVolumeQuery"></input>
+    <button class="btn btn-primary" @onclick="FindGoogleVolume" disabled="@IsLoading">
+        <span>Find Volume</span>
+    </button>
+
+
+    @if (volumes?.Items?.Any() == true)
+    {
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Title</th>
+                    <th>Published Date</th>
+                    <th>PageCount</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var volume in volumes.Items)
+                {
+                    <tr>
+                        <td>@volume.VolumeInfo.Title</td>
+                        <td>@volume.VolumeInfo.PublishedDate</td>
+                        <td>@volume.VolumeInfo.PageCount</td>
+                        <td class="column-action">
+                            @if (selectedVolumes?.Contains(volume) == true)
+                            {
+                                <button @onclick="() => RemoveGoogleVolumeToCategory(volume)" class="btn btn-danger">
+                                    <span class="oi oi-minus" aria-hidden="true"></span> Delete volume
+                                </button>
+                            }
+                            else
+                            {
+                                <button @onclick="() => AddGoogleVolumeToCategory(volume)" class="btn btn-primary">
+                                    <span class="oi oi-plus" aria-hidden="true"></span> Add volume
+                                </button>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+
+    @if (IsSuccess)
+    {
+        <div class="modal fade show" style="display: block;">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Success</h5>
+                        <button type="button" class="close" @onclick="CloseModal">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <p>Category "@categoryCreateDTO.Name" with ID [@CreatedCategoryId] was successfully created!</p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-success" @onclick="CloseModal">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    }
+
+    @if (IsLoading)
+    {
+        <div class="overlay">
+            <div class="spinner-border" role="status"></div>
+        </div>
+    }
+</div>
+
+@code {
+    private CategoryCreateDTO categoryCreateDTO = new CategoryCreateDTO();
+    private string findGoogleVolumeQuery = "";
+    private GoogleBookVolumesResultDTO volumes;
+    private List<GoogleBookVolumeDTO> selectedVolumes = new List<GoogleBookVolumeDTO>();
+    private bool IsLoading = false;
+    private bool IsSuccess = false;
+    private int CreatedCategoryId;
+
+    private async Task CreateCategory()
+    {
+        IsLoading = true;
+        categoryCreateDTO.GoogleVolumesIDs = selectedVolumes.Select(v => v.Id).ToList();
+        CreatedCategoryId = await CustomApiClientService.CreateNewCategory(categoryCreateDTO);
+        IsSuccess = true;
+        IsLoading = false;
+    }
+
+    private async Task FindGoogleVolume()
+    {
+        IsLoading = true;
+        volumes = await CustomApiClientService.FindGoogleVolume(findGoogleVolumeQuery);
+        IsLoading = false;
+    }
+
+    private void AddGoogleVolumeToCategory(GoogleBookVolumeDTO googleBookVolumeDTO)
+    {
+        selectedVolumes.Add(googleBookVolumeDTO);
+    }
+
+    private void RemoveGoogleVolumeToCategory(GoogleBookVolumeDTO googleBookVolumeDTO)
+    {
+        selectedVolumes.Remove(googleBookVolumeDTO);
+    }
+
+    private void CloseModal()
+    {
+        IsSuccess = false;
+    }
+}
+
+
+<style>
+    .overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(255, 255, 255, 0.7);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+    }
+
+    .spinner-border {
+    }
+</style>

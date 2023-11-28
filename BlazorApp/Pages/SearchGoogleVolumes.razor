@@ -1,0 +1,57 @@
+﻿@page "/GoogleVolume/Find"
+@using CustomApiClient;
+@using DTOs
+@inject ICustomApiClient CustomApiClientService
+
+<PageTitle>Google volumes list</PageTitle>
+
+<h1>Volumes</h1>
+
+<input type="text" class="form-control" @bind="query"></input>
+<button class="btn btn-primary" @onclick="FindGoogleVolume" disabled="@IsLoading">
+    @if (IsLoading)
+    {
+        <div class="spinner-border" role="status">
+        </div>
+    } else
+    {
+        <span>Find Volume</span>
+    }
+</button>
+
+
+@if (volumes != null)
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Title</th>
+                <th>Published Date</th>
+                <th>PageCount</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var volume in volumes.Items)
+            {
+                <tr>
+                    <td>@volume.VolumeInfo.Title</td>
+                    <td>@volume.VolumeInfo.PublishedDate</td>
+                    <td>@volume.VolumeInfo.PageCount</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private string query = "";
+    private GoogleBookVolumesResultDTO volumes;
+    private bool IsLoading = false;
+
+    private async Task FindGoogleVolume()
+    {
+        IsLoading = true;
+        volumes = await CustomApiClientService.FindGoogleVolume(query);
+        IsLoading = false;
+    }
+}
